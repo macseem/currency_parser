@@ -8,7 +8,7 @@
 define('BASE_DIR', __FILE__);
 define('DS',DIRECTORY_SEPARATOR);
 
-class currency {
+class Currency {
     private $_label;
     private $_total;
     public function __construct($label)
@@ -21,10 +21,10 @@ class currency {
         if(!is_numeric($sum)){
             throw new Exception(500, 'Sum '.$sum.' is not a number');
         }
-        return $_total+=$sum;
+        return $this->_total+=$sum;
     }
     public function getTotal(){
-        return $this->total;
+        return $this->_total;
     }
 }
 
@@ -33,6 +33,7 @@ class CurrencyTotal {
     private $children = array();
     protected static $_instance;
 
+    //<editor-fold desc="Singleton code">
     private function __clone(){}
     private function __wakeup(){}
 
@@ -47,27 +48,37 @@ class CurrencyTotal {
         }
         return self::$_instance;
     }
+    //</editor-fold>
 
+    /**
+     * @param $value
+     * @return Currency
+     * @throws Exception
+     */
     public function addCurrency($value)
     {
         if(isset($this->children[$value])){
             throw new Exception(500, 'There is already '.$value.' currency');
         }
-        return $this->children[$value] = new currency();
+        return $this->children[$value] = new Currency($value);
     }
-    
+
+    /**
+     * @param $value
+     * @return Currency
+     */
     public function getCurrency($value)
     {
         if(!isset($this->children[$value])){
             $this->addCurrency($value);
         }
-        return &$this->children[$value];
+        return $this->children[$value];
     }
 
-    public function addCurrencyTotal($currency,$sum)
+    public function addCurrencyTotal($currencyLabel,$sum)
     {
         try{
-            $currency = $this->getCurrency($value);
+            $currency = &$this->getCurrency($currencyLabel);
             $currency->addTotal($sum);
         }
         catch(Exception $e){
@@ -94,7 +105,7 @@ class CSV {
     public function __set($name,$value)
     {
         $func = 'set'.ucfirst($name);
-        if(method_exists($func)){
+        if(method_exists($this,$func)){
             return $this->$func($value);
         }
         $prop = '_'.$name;
@@ -115,7 +126,7 @@ class CSV {
         if(!$this->validate($_text)){
            throw new Exception(500,'CSV format is not valid'); 
         }
-        $this->_text = $_text
+        $this->_text = $_text;
 
     }
     private function validate($_text)
