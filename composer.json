@@ -1,0 +1,6 @@
+{
+    "name": "package/test",
+    "autoload": {
+        "psr-4": {"Macseem\\Test\\": "src/"}
+    }
+}
