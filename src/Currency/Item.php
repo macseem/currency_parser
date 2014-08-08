@@ -6,11 +6,11 @@
  * Time: 3:04 PM
  */
 
-namespace Macseem\Test\Currency\Item;
+namespace Macseem\Test\Currency;
 /**
- * Class Library_Currency
+ * Class Item
  */
-class Macseem_Test_Currency_Item {
+class Item {
     private $_label;
     private $_total;
     public function __construct($label)
@@ -27,5 +27,8 @@ class Macseem_Test_Currency_Item {
     }
     public function getTotal(){
         return $this->_total;
+    }
+    public function getLabel(){
+        return $this->_label;
     }
 }

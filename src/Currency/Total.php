@@ -7,11 +7,13 @@
  */
 
 
-namespace Macseem\Test\Currency\Total;
+namespace Macseem\Test\Currency;
+use Macseem\Test\Currency\Item as Child;
+use Macseem\Test\CSV\Item as CSV;
 /**
- * Class Library_Currency_Total
+ * Class Total
  */
-class Macseem_Test_Currency_Total {
+class Total {
     private $children = array();
     protected static $_instance;
 
@@ -19,14 +21,33 @@ class Macseem_Test_Currency_Total {
     private function __clone(){}
     private function __wakeup(){}
 
-    protected function __construct()
+    protected function __construct($file)
     {
+        $text = file_get_contents($file);
+        $file = CSV::getInstance($text);
+        $this->initChildren($file->rows);
     }
 
-    public static function getInstance()
+    private function initChildren($rows){
+        foreach($rows as $row){
+            //TODO:macseem: fix problem with getSum func
+            var_dump($row);
+            $count = count($row);
+            $currency=end($row);
+            $sum = prev($row);
+            var_dump($currency,$sum);
+            for($i=1;$i<$count-1;$i++){
+                if(preg_match('/^PAY[0-9]\w\w$/',$row[$i])){
+                    $this->addCurrencyTotal($currency,$sum);
+                }
+            }
+        }
+
+    }
+    public static function getInstance($file)
     {
         if(null === self::$_instance){
-            self::$_instance = new self();
+            self::$_instance = new self($file);
         }
         return self::$_instance;
     }
@@ -34,20 +55,20 @@ class Macseem_Test_Currency_Total {
 
     /**
      * @param $value
-     * @return Library_Currency_Item
-     * @throws Exception
+     * @return Child
+     * @throws \Exception
      */
     public function addCurrency($value)
     {
         if(isset($this->children[$value])){
-            throw new Exception(500, 'There is already '.$value.' currency');
+            throw new \Exception(500, 'There is already '.$value.' currency');
         }
-        return $this->children[$value] = new Macseem_Test_Currency_Item($value);
+        return $this->children[$value] = new Child($value);
     }
 
     /**
      * @param $value
-     * @return Library_Currency_Item
+     * @return Child
      */
     public function getCurrency($value)
     {
@@ -63,9 +84,22 @@ class Macseem_Test_Currency_Total {
             $currency = &$this->getCurrency($currencyLabel);
             $currency->addTotal($sum);
         }
-        catch(Exception $e){
-            throw new Exception ($e->getCode(), $e->getMessage(), $e);
+        catch(\Exception $e){
+            throw new \Exception ($e->getCode(), $e->getMessage(), $e);
         }
         return $currency->getTotal();
+    }
+
+    public function getAllTotals()
+    {
+        $totals = array();
+        /* @var Child $child */
+        foreach($this->children as $child){
+            $totals[]=array(
+                $child->getLabel(),
+                $child->getTotal()
+            );
+        }
+        return $totals;
     }
 }
