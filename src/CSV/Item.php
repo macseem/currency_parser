@@ -10,25 +10,33 @@ namespace Macseem\Test\CSV;
 use Macseem\Test\Currency\Total;
 /**
  * Class Item
- * @property string $text
- * @property array $rows
+ * @property array $currentRow
+ * @property $file
+ *
  */
-class Item {
-    protected $_text;
-    protected $_rows;
+class Item extends MainCSV{
+    protected $_currentRow;
     protected $_totalCurrency;
+    protected function __clone(){}
+    protected function __wakeup(){}
     protected static $_instance;
-
-    private function __clone(){}
-    private function __wakeup(){}
-    public static function getInstance($_text = NULL)
+    /**
+     * @param null $_file
+     * @return Item
+     */
+    public static function getInstance($_file = NULL)
     {
         if(NULL === self::$_instance){
-            self::$_instance = new self($_text);
+            self::$_instance = new self($_file);
         }
         return self::$_instance;
     }
 
+    /**
+     * @param $name
+     * @param $value
+     * @return mixed
+     */
     public function __set($name,$value)
     {
         $func = 'set'.ucfirst($name);
@@ -39,6 +47,11 @@ class Item {
         return property_exists(__CLASS__,$prop)?$this->$prop=$value:false;
     }
 
+    /**
+     * @param $name
+     * @return mixed
+     * @throws Exception
+     */
     public function __get($name){
         $_name = '_'.$name;
         if(!empty($this->$_name)){
@@ -49,48 +62,96 @@ class Item {
             try{
                 return $this->$setter();
             }
-            catch(\Exception $e){
-                throw new \Exception ($e->getCode(), $e->getMessage(), $e);
+            catch(Exception $e){
+                throw new Exception ($e->getCode(), $e->getMessage(), $e);
             }
         }
         return false;
     }
 
-    protected function __construct($_text = NULL)
-    {
-        try{
-            $this->text=trim($_text," \n\r\t");
+    /**
+     * @return array|bool
+     */
+    public function nextRow(){
+        parent::nextRow();
+        if(empty($this->_rawRow) or false === $this->_rawRow){
+            $this->_currentRow = false;
         }
-        catch(\Exception $e){
-            echo $e->getMessage();
+        else{
+            $this->_currentRow = array(
+                'date' => current($this->_rawRow),
+                'currency' => end($this->_rawRow),
+                'isPay' => $this->isPay(),
+                'sum' =>  $this->getSum(),
+            );
+        }
+        return $this->validate();
+    }
+
+    /**
+     * @return bool
+     */
+    private function isPay()
+    {
+        $count = count($this->rawRow);
+        for($i=1;$i<$count-1;$i++){
+            if(preg_match('/^PAY[0-9]+.*$/',$this->rawRow[$i])){
+                return true;
+            }
         }
     }
 
+    /**
+     * @return float|bool
+     */
+    private function getSum()
+    {
+        $count = count($this->rawRow);
+        return empty($this->rawRow[$count-2])?false:$this->rawRow[$count-2];
+    }
     //<editor-fold desc="Setters">
-    private function setText($_text)
+    /**
+     * setCurrentRow
+     * alias for nextRow()
+     * @return array|bool
+     */
+    private function setCurrentRow()
     {
-        if(!$this->validate($_text)){
-            throw new \Exception(500,'CSV format is not valid');
-        }
-        $this->_text = $_text;
-
+        return $this->nextRow();
     }
 
-    private function setRows(){
-        $rows = explode("\n",$this->text);
-        foreach($rows as &$row){
-            $row = explode(',',$row);
-        }
-        return $this->_rows = $rows;
-    }
-
+    /**
+     * @return Total
+     */
     private function setTotalCurrency(){
         return $this->_totalCurrency = Total::getInstance();
     }
     //</editor-fold>
-    private function validate($_text)
+
+    /**
+     * @return array|bool
+     */
+    private function validate()
     {
-        return true;
+        if(!is_array($this->_currentRow)){
+            $this->_currentRow = false;
+            return false;
+        }
+        $keys = array('currency','date','isPay','sum');
+        foreach($keys as $key){
+            if(!array_key_exists($key,$this->_currentRow)){
+                $this->_currentRow = false;
+                return false;
+            }
+        }
+        if(!preg_match('/^[A-Z]{3}$/',$this->_currentRow['currency'])
+            or !is_numeric($this->_currentRow['sum'])
+            or gettype($this->_currentRow['isPay']) != 'boolean'
+            or !preg_match('/[0-9]{2}\/[0-9]{2}\/[0-9]{4}/',$this->_currentRow['date'])
+        ){
+            $this->_currentRow = false;
+        }
+        return $this->_currentRow;
     }
 
 }

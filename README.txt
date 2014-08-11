@@ -12,7 +12,7 @@ each currency.  All lines of the bank statement that represent a payment will co
 reference in one of it's narratives.  A payment reference is guaranteed to be the letters "PAY" 
 then 6 digits and then two more letters (e.g. PAY000001YB).  The currencies that we deal with for 
 the purpose of this exercise are GBP, EUR, USD and CAD. 
-If there is another currenciy in a bank statement, it also should be in the oputput.
+If there is another currency in a bank statement, it also should be in the oputput.
 
 
 Sample Output:

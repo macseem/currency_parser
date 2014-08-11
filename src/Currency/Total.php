@@ -17,33 +17,39 @@ class Total {
     private $children = array();
     protected static $_instance;
 
-    //<editor-fold desc="Singleton code">
     private function __clone(){}
     private function __wakeup(){}
 
-    protected function __construct($file)
+    /**
+     * __construct
+     * init all children
+     * performs all rows from csv file
+     * @param $fileName
+     */
+    protected function __construct($fileName)
     {
-        $text = file_get_contents($file);
-        $file = CSV::getInstance($text);
-        $this->initChildren($file->rows);
-    }
-
-    private function initChildren($rows){
-        foreach($rows as $row){
-            //TODO:macseem: fix problem with getSum func
-            var_dump($row);
-            $count = count($row);
-            $currency=end($row);
-            $sum = prev($row);
-            var_dump($currency,$sum);
-            for($i=1;$i<$count-1;$i++){
-                if(preg_match('/^PAY[0-9]\w\w$/',$row[$i])){
-                    $this->addCurrencyTotal($currency,$sum);
-                }
+        $file = CSV::getInstance($fileName);
+        while(!feof($file->file)){
+            if(is_array($file->currentRow)){
+                $this->performChild($file->currentRow);
             }
+            $file->nextRow();
         }
-
     }
+
+    /**
+     * @param $row
+     */
+    private function performChild($row){
+        if($row['isPay']){
+            $this->addCurrencyTotal($row);
+        }
+    }
+
+    /**
+     * @param $file
+     * @return Total
+     */
     public static function getInstance($file)
     {
         if(null === self::$_instance){
@@ -51,17 +57,16 @@ class Total {
         }
         return self::$_instance;
     }
-    //</editor-fold>
 
     /**
      * @param $value
      * @return Child
-     * @throws \Exception
+     * @throws Exception
      */
     public function addCurrency($value)
     {
         if(isset($this->children[$value])){
-            throw new \Exception(500, 'There is already '.$value.' currency');
+            throw new Exception(500, 'There is already '.$value.' currency');
         }
         return $this->children[$value] = new Child($value);
     }
@@ -78,18 +83,28 @@ class Total {
         return $this->children[$value];
     }
 
-    public function addCurrencyTotal($currencyLabel,$sum)
+    /**
+     * @param $row
+     * @return float
+     * @throws Exception
+     */
+    public function addCurrencyTotal($row)
     {
         try{
-            $currency = &$this->getCurrency($currencyLabel);
-            $currency->addTotal($sum);
+            $currency = $this->getCurrency($row['currency']);
+            $currency->addTotal($row['sum']);
         }
-        catch(\Exception $e){
-            throw new \Exception ($e->getCode(), $e->getMessage(), $e);
+        catch(Exception $e){
+            throw new Exception ($e->getCode(), $e->getMessage(), $e);
         }
         return $currency->getTotal();
     }
 
+    /**
+     * getAllTotals
+     * The main function
+     * @return array contains all currencies and their payed totals
+     */
     public function getAllTotals()
     {
         $totals = array();

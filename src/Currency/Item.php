@@ -20,10 +20,10 @@ class Item {
     }
     public function addTotal($sum)
     {
-        if(!is_numeric($sum)){
-            throw new Exception(500, 'Sum '.$sum.' is not a number');
+        if(is_numeric($sum)){
+            return $this->_total+=$sum;
         }
-        return $this->_total+=$sum;
+        throw new Exception(500, 'Can\'t add total sum. There is no numbers in row');
     }
     public function getTotal(){
         return $this->_total;
